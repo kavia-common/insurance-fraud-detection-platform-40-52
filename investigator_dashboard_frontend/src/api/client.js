@@ -37,7 +37,10 @@ export async function apiGet(path) {
   const res = await fetch(buildUrl(path), {
     method: "GET",
     headers: { Accept: "application/json" },
-    credentials: "include",
+    // Do not include credentials by default.
+    // When CORS_ALLOW_ALL_ORIGINS=True, browsers will reject responses that try to
+    // use wildcard ACAO with credentials. Our current API is unauthenticated, so
+    // credentials are unnecessary and can cause CORS failures.
   });
   return parseResponse(res);
 }
@@ -50,7 +53,8 @@ export async function apiPost(path, payload) {
   const res = await fetch(buildUrl(path), {
     method: "POST",
     headers: { Accept: "application/json", "Content-Type": "application/json" },
-    credentials: "include",
+    // See apiGet: credentials are intentionally omitted by default to avoid CORS
+    // issues with wildcard origins in development/preview environments.
     body: JSON.stringify(payload ?? {}),
   });
   return parseResponse(res);
