@@ -1,0 +1,4 @@
+{
+    "command": "npm install && npx tsc --noEmit && npm test -- --ci",
+    "working_directory": "/home/kavia/workspace/code-generation/insurance-fraud-detection-platform-40-52/investigator_dashboard_frontend"
+}
