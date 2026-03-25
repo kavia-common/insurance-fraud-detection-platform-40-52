@@ -63,8 +63,20 @@ export async function apiPost(path, payload) {
 /**
  * PUBLIC_INTERFACE
  * getHealth calls backend health endpoint.
- * Note: discovered from backend swagger (currently only /health/ is present).
+ *
+ * The Django backend mounts the API under `/api/` (see backend config/urls.py),
+ * so the effective health URL is `/api/health/`.
  */
 export async function getHealth() {
-  return apiGet("/health/");
+  return apiGet("/api/health/");
+}
+
+/**
+ * PUBLIC_INTERFACE
+ * getClaims fetches the claims list from the backend.
+ *
+ * Note: This verifies that `/api/claims/` is reachable from the frontend runtime.
+ */
+export async function getClaims() {
+  return apiGet("/api/claims/");
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getHealth } from "../api/client";
+import { getClaims, getHealth } from "../api/client";
 import { PageHeader, Alert } from "../components/ui";
 
 const mockTopFindings = [
@@ -14,9 +14,11 @@ const mockTopFindings = [
  */
 export function OverviewPage() {
   const [health, setHealth] = useState({ loading: true, ok: false, data: null, error: null });
+  const [claims, setClaims] = useState({ loading: true, ok: false, data: null, error: null });
 
   useEffect(() => {
     let cancelled = false;
+
     (async () => {
       try {
         const data = await getHealth();
@@ -25,7 +27,19 @@ export function OverviewPage() {
         if (!cancelled) setHealth({ loading: false, ok: false, data: null, error: e });
       }
     })();
-    return () => { cancelled = true; };
+
+    (async () => {
+      try {
+        const data = await getClaims();
+        if (!cancelled) setClaims({ loading: false, ok: true, data, error: null });
+      } catch (e) {
+        if (!cancelled) setClaims({ loading: false, ok: false, data: null, error: e });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -35,16 +49,28 @@ export function OverviewPage() {
         subtitle="Monitor fraud signals, workload, and operational health."
         actions={
           <>
-            <a className="btn btn-primary" href="/queue">Open Queue</a>
-            <a className="btn" href="/ingest">Ingest Claims</a>
+            <a className="btn btn-primary" href="/queue">
+              Open Queue
+            </a>
+            <a className="btn" href="/ingest">
+              Ingest Claims
+            </a>
           </>
         }
       />
 
       {!health.loading && !health.ok ? (
         <Alert variant="error" title="Backend unreachable">
-          Health check failed. Ensure API base is correct via <code>REACT_APP_API_BASE</code> (or <code>REACT_APP_BACKEND_URL</code>).
+          Health check failed. Ensure API base is correct via <code>REACT_APP_API_BASE</code> (or{" "}
+          <code>REACT_APP_BACKEND_URL</code>).
           <div className="footer-note">Error: {String(health.error?.message || health.error)}</div>
+        </Alert>
+      ) : null}
+
+      {!claims.loading && !claims.ok ? (
+        <Alert variant="error" title="Claims endpoint unreachable">
+          Fetching <code>/api/claims/</code> failed. This verifies frontend-to-backend connectivity and CORS.
+          <div className="footer-note">Error: {String(claims.error?.message || claims.error)}</div>
         </Alert>
       ) : null}
 
@@ -101,14 +127,18 @@ export function OverviewPage() {
               <tbody>
                 {mockTopFindings.map((r) => (
                   <tr key={r.claimId}>
-                    <td><a href="/cases" style={{ textDecoration: "underline" }}>{r.claimId}</a></td>
+                    <td>
+                      <a href="/cases" style={{ textDecoration: "underline" }}>
+                        {r.claimId}
+                      </a>
+                    </td>
                     <td>{r.claimant}</td>
-                    <td><span className="badge primary">{r.score}</span></td>
+                    <td>
+                      <span className="badge primary">{r.score}</span>
+                    </td>
                     <td>{r.reason}</td>
                     <td>
-                      <span className={`badge ${r.status === "assigned" ? "secondary" : "primary"}`}>
-                        {r.status}
-                      </span>
+                      <span className={`badge ${r.status === "assigned" ? "secondary" : "primary"}`}>{r.status}</span>
                     </td>
                   </tr>
                 ))}
@@ -124,21 +154,29 @@ export function OverviewPage() {
 
           <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
             <div className="pill">
-              Backend health:{" "}
-              <strong>
-                {health.loading ? "checking…" : health.ok ? "ok" : "down"}
-              </strong>
+              Backend health: <strong>{health.loading ? "checking…" : health.ok ? "ok" : "down"}</strong>
             </div>
             <div className="pill">
               Health payload:{" "}
+              <strong>{health.ok ? (typeof health.data === "string" ? health.data : "received") : "n/a"}</strong>
+            </div>
+            <div className="pill">
+              Claims list:{" "}
               <strong>
-                {health.ok ? (typeof health.data === "string" ? health.data : "received") : "n/a"}
+                {claims.loading
+                  ? "loading…"
+                  : claims.ok
+                    ? Array.isArray(claims.data)
+                      ? `${claims.data.length} claim(s)`
+                      : "received"
+                    : "failed"}
               </strong>
             </div>
           </div>
 
           <div className="footer-note">
-            If health is down, verify backend is reachable and that CORS is configured for this frontend origin.
+            These checks call <code>/api/health/</code> and <code>/api/claims/</code> using the configured API base URL.
+            If either fails, verify environment variables and backend CORS.
           </div>
         </div>
       </div>
